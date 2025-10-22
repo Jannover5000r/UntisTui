@@ -1,0 +1,8 @@
+login*.json
+rooms.json
+subjects.json
+teachers.json
+timetable*.json
+classes.json
+.env
+
