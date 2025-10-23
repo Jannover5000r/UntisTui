@@ -1,7 +1,6 @@
 package untis
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -15,16 +14,24 @@ func getMonday(t time.Time) time.Time {
 }
 
 func getWeekTable(cookies []*http.Cookie) {
-	// now := time.Now()
-	// monday := getMonday(now)
-}
-
-func main() {
 	now := time.Now()
 	monday := getMonday(now)
-	mondaystr := monday.Format("20060102")
-	fmt.Println("Monday is: ", mondaystr)
-	tuesday := monday.AddDate(0, 0, 1)
-	tuesdaystr := tuesday.Format("20060102")
-	fmt.Println("Tuersday is: ", tuesdaystr)
+	tuesday := monday.AddDate(0, 0, 2)
+	wednesday := monday.AddDate(0, 0, 2)
+	thursday := monday.AddDate(0, 0, 3)
+	friday := monday.AddDate(0, 0, 4)
+	Weekday := "Monday"
+	Timetable(cookies, monday, Weekday)
+	Weekday = "Tuesday"
+	Timetable(cookies, tuesday, Weekday)
+	Weekday = "Wednesday"
+	Timetable(cookies, wednesday, Weekday)
+	Weekday = "Thursday"
+	Timetable(cookies, thursday, Weekday)
+	Weekday = "Friday"
+	Timetable(cookies, friday, Weekday)
+}
+
+func TimetableWeek(cookies []*http.Cookie) {
+	getWeekTable(cookies)
 }

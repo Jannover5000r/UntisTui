@@ -3,6 +3,5 @@ rooms.json
 subjects.json
 teachers.json
 timetable*.json
-classes.json
 .env
-
+classes.json

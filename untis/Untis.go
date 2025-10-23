@@ -1,3 +1,4 @@
+// Package untis: used for basic timetable managment and api calls
 package untis
 
 import (
@@ -18,7 +19,7 @@ type Params struct {
 }
 
 type Login struct {
-	Id     string `json:"id"`
+	ID     string `json:"id"`
 	Method string `json:"method"`
 	Params Params `json:"params"`
 
@@ -42,9 +43,8 @@ func Main(user string, password string) {
 	Rooms(cookies)
 	Classes(cookies)
 	Subjects(cookies)
-	Timetable(cookies)
+	TimetableWeek(cookies)
 	Teachers(cookies)
-	main()
 }
 
 func Auth(user string, password string) ([]*http.Cookie, error) {

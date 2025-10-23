@@ -10,10 +10,10 @@ import (
 )
 
 type getRooms struct {
-	Id      string      `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Jsonrpc string      `json:"jsonrpc"`
+	ID      string `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	Jsonrpc string `json:"jsonrpc"`
 }
 
 type RoomsResponse struct {
@@ -32,13 +32,13 @@ type Room struct {
 
 func Rooms(cookies []*http.Cookie) {
 	// log.Println("Abrufen der Stunden")
-	g := getRooms{"2023-05-06 15:44:22.215292", "getRooms", map[string]interface{}{}, "2.0"}
-	roomsJson, err := json.Marshal(g)
+	g := getRooms{"2023-05-06 15:44:22.215292", "getRooms", map[string]any{}, "2.0"}
+	roomsJSON, err := json.Marshal(g)
 	if err != nil {
 		log.Fatalf("Error marshaling login data: %v", err)
 		return
 	}
-	rooms := bytes.NewReader(roomsJson)
+	rooms := bytes.NewReader(roomsJSON)
 
 	prompt, err := http.NewRequest("POST", URL, rooms)
 	if err != nil {

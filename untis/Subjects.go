@@ -22,20 +22,20 @@ type subjects struct {
 	AlternateName string `json:"alternateName"`
 }
 type getSubjects struct {
-	Id      string      `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Jsonrpc string      `json:"jsonrpc"`
+	ID      string `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	Jsonrpc string `json:"jsonrpc"`
 }
 
 func Subjects(cookies []*http.Cookie) {
-	g := getSubjects{"2023-05-06 15:44:22.215292", "getSubjects", map[string]interface{}{}, "2.0"}
-	SubjectsJson, err := json.Marshal(g)
+	g := getSubjects{"2023-05-06 15:44:22.215292", "getSubjects", map[string]any{}, "2.0"}
+	SubjectsJSON, err := json.Marshal(g)
 	if err != nil {
 		log.Fatalf("Error marshaling login data: %v", err)
 		return
 	}
-	subjects := bytes.NewReader(SubjectsJson)
+	subjects := bytes.NewReader(SubjectsJSON)
 
 	prompt, err := http.NewRequest("POST", URL, subjects)
 	if err != nil {

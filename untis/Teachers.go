@@ -22,20 +22,20 @@ type teachers struct {
 	AlternateName string `json:"alternateName"`
 }
 type getTeachers struct {
-	Id      string      `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Jsonrpc string      `json:"jsonrpc"`
+	ID      string `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	Jsonrpc string `json:"jsonrpc"`
 }
 
 func Teachers(cookies []*http.Cookie) {
-	g := getTeachers{"2023-05-06 15:44:22.215292", "getTeachers", map[string]interface{}{}, "2.0"}
-	TeachersJson, err := json.Marshal(g)
+	g := getTeachers{"2023-05-06 15:44:22.215292", "getTeachers", map[string]any{}, "2.0"}
+	TeachersJSON, err := json.Marshal(g)
 	if err != nil {
 		log.Fatalf("Error marshaling login data: %v", err)
 		return
 	}
-	teachers := bytes.NewReader(TeachersJson)
+	teachers := bytes.NewReader(TeachersJSON)
 
 	prompt, err := http.NewRequest("POST", URL, teachers)
 	if err != nil {

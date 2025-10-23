@@ -60,7 +60,7 @@ type NamedObj struct {
 	Name string `json:"name"`
 }
 type getTimetable struct {
-	Id      string `json:"id"`
+	ID      string `json:"id"`
 	Method  string `json:"method"`
 	Params  params `json:"params"`
 	Jsonrpc string `json:"jsonrpc"`
@@ -68,7 +68,7 @@ type getTimetable struct {
 type params struct {
 	StartDate string `json:"startDate"`
 	EndDate   string `json:"endDate"`
-	Id        int    `json:"id"`
+	ID        int    `json:"id"`
 	Type      int    `json:"type"`
 }
 type Loginresult struct {
@@ -88,23 +88,23 @@ func ReadLoginResultFromFile(path string) (Loginresult, error) {
 	return result, err
 }
 
-func Timetable(cookies []*http.Cookie) {
+func Timetable(cookies []*http.Cookie, date time.Time, weekday string) {
 	loginFile := "login.json"
 
 	loginResult, err := ReadLoginResultFromFile(loginFile)
 	if err != nil {
-		log.Printf("Could not read login result for user %s: %v", err)
+		log.Printf("Could not read login result for user %s: ", err)
 		return
 	}
 
-	today := time.Now().Format("20060102")
-	g := getTimetable{"If you read this, Hello", "getTimetable", params{today, today, loginResult.PersonID, loginResult.PersonType}, "2.0"}
-	timetablesJson, err := json.Marshal(g)
+	dateStr := date.Format("20060102")
+	g := getTimetable{"If you read this, Hello", "getTimetable", params{dateStr, dateStr, loginResult.PersonID, loginResult.PersonType}, "2.0"}
+	timetablesJSON, err := json.Marshal(g)
 	if err != nil {
 		log.Printf("Error marshaling timetable request: %v", err)
 		return
 	}
-	timetable := bytes.NewReader(timetablesJson)
+	timetable := bytes.NewReader(timetablesJSON)
 
 	req, err := http.NewRequest("GET", URL, timetable)
 	if err != nil {
@@ -141,15 +141,15 @@ func Timetable(cookies []*http.Cookie) {
 		return
 	}
 
-	timetableFile := "timetable.json"
+	timetableFileTmp := "timetableTmp.json"
 
-	if err := os.WriteFile(timetableFile, data, 0o644); err != nil {
+	if err := os.WriteFile(timetableFileTmp, data, 0o644); err != nil {
 		log.Printf("Error writing timetable file: %v", err)
 		return
 	}
 
 	log.Printf("Updated timetable for user ")
-	setTimetable()
+	setTimetable(weekday)
 }
 
 func LoadIDMap(path string) (map[int]string, error) {
@@ -194,17 +194,17 @@ func formatDate(date int) string {
 	return fmt.Sprintf("%s-%s-%s", day, month, year)
 }
 
-func setTimetable() {
+func setTimetable(weekday string) {
 	subjects, _ := LoadIDMap("subjects.json")
 	rooms, _ := LoadIDMap("rooms.json")
 	classes, _ := LoadIDMap("classes.json")
 
-	timetableFile := "timetable.json"
+	timetableFileTmp := "timetableTmp.json"
 
-	timetable, _ := LoadTimetable(timetableFile)
+	timetableTmp, _ := LoadTimetable(timetableFileTmp)
 
 	var namedTimetable []NamedTimetableEntry
-	for _, lesson := range timetable {
+	for _, lesson := range timetableTmp {
 		var klNames, suNames, roNames []string
 		for _, kl := range lesson.Kl {
 			klNames = append(klNames, classes[kl.ID])
@@ -235,11 +235,15 @@ func setTimetable() {
 		return
 	}
 
-	timetableFilledFile := "timetableFilled.json"
+	timetableFilledFileWeekday := "timetableFilled_" + weekday + ".json"
 
-	if err := os.WriteFile(timetableFilledFile, data, 0o644); err != nil {
+	if err := os.WriteFile(timetableFilledFileWeekday, data, 0o644); err != nil {
 		log.Printf("Error writing timetableFilled file: %v", err)
 		return
 	}
 	log.Printf("Filled timetable for user")
+
+	// remove temporary timetable file
+	os.Remove("timetableTmp.json")
+	log.Printf("Temporary timetable file removed")
 }
