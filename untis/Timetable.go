@@ -43,18 +43,7 @@ type timetable struct {
 type IDObj struct {
 	ID int `json:"id"`
 }
-type TimetableEntry struct {
-	ID           int     `json:"id"`
-	Date         int     `json:"date"`
-	StartTime    int     `json:"startTime"`
-	EndTime      int     `json:"endTime"`
-	Code         string  `json:"code,omitempty"`
-	Statflags    string  `json:"statflags,omitempty"`
-	Kl           []IDObj `json:"kl"`
-	Su           []IDObj `json:"su"`
-	Ro           []IDObj `json:"ro"`
-	ActivityType string  `json:"activityType"`
-}
+
 type NamedObj struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -168,12 +157,12 @@ func LoadIDMap(path string) (map[int]string, error) {
 	return m, nil
 }
 
-func LoadTimetable(path string) ([]TimetableEntry, error) {
+func LoadTimetable(path string) ([]timetable, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var entries []TimetableEntry
+	var entries []timetable
 	if err := json.Unmarshal(data, &entries); err != nil {
 		return nil, err
 	}
