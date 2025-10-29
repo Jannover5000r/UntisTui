@@ -31,6 +31,10 @@ type LoginResponse struct {
 	Result  Loginresult `json:"result"`
 }
 
+func init() {
+	godotenv.Overload("../.env")
+}
+
 var URL = "https://thalia.webuntis.com/WebUntis/jsonrpc.do?school=Mons_Tabor"
 
 func Main(user string, password string) {

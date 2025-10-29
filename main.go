@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -22,7 +23,10 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		tea.EnterAltScreen,
+		tea.HideCursor,
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -30,17 +34,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
-			return m, tea.Quit
+			return m, tea.Sequence(
+				tea.ShowCursor,
+				tea.ExitAltScreen,
+				tea.Quit,
+			)
 		}
 	}
 	return m, nil
 }
 
 func main() {
-	godotenv.Load(".env")
+	err := godotenv.Overload(".env")
+	if err != nil {
+		log.Println("error reading .env ", err)
+	}
 	user := os.Getenv("USER")
 	pass := os.Getenv("PASS")
-
 	untis.Main(user, pass)
 
 	p := tea.NewProgram(newModel())
@@ -97,11 +107,12 @@ func (m model) View() string {
 	entryColWidth := 18
 
 	// Styling
-	timeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Width(timeColWidth).Align(lipgloss.Right)
-	headerStyle := lipgloss.NewStyle().Bold(true).Padding(0, 1).Width(entryColWidth)
-	entryStyle := lipgloss.NewStyle().Padding(0, 1).Width(entryColWidth).BorderStyle(lipgloss.RoundedBorder())
+	timeStrStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Width(timeColWidth).Align(lipgloss.Right)
+	timeStyle := lipgloss.NewStyle().PaddingTop(1).Foreground(lipgloss.Color("63")).Width(timeColWidth).Align(lipgloss.Right)
+	headerStyle := lipgloss.NewStyle().Bold(true).Padding(0, 1).Width(entryColWidth + 2).Align(lipgloss.Center).Foreground(lipgloss.Color("63"))
+	entryStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true).Padding(0, 1).Width(entryColWidth).BorderStyle(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("63")).Align(lipgloss.Center)
 
-	headers := []string{timeStyle.Render("Time")}
+	headers := []string{timeStrStyle.Render("Time")}
 	for _, name := range m.dayNames {
 		headers = append(headers, headerStyle.Render(name))
 	}
@@ -122,8 +133,25 @@ func (m model) View() string {
 		}
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 	}
-	content := lipgloss.JoinVertical(lipgloss.Left, rows...)
-	return content + "\n\nPress q to quit"
+	tableContent := lipgloss.JoinVertical(lipgloss.Left, rows...)
+
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("63")).
+		Padding(0, 1).
+		Render("Weekly Timetable")
+
+	border := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(1, 2).
+		Render(tableContent)
+	tableContent = border
+
+	content := lipgloss.JoinVertical(lipgloss.Center, title, tableContent)
+
+	footer := "\nPress q to quit"
+
+	return content + footer
 }
 
 func timeToMinutes(t string) int {
