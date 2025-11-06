@@ -111,16 +111,16 @@ func (m model) View() string {
 	
 	// Responsive breakpoints and sizing constants
 	const (
-		largeTerminalWidth  = 140
-		mediumTerminalWidth = 100
-		largeEntryWidth     = 20
-		largeTimeWidth      = 8
-		mediumEntryWidth    = 16
-		mediumTimeWidth     = 7
-		smallEntryWidth     = 14
-		smallTimeWidth      = 6
-		minRoomDisplayWidth = 16
-		minTextPadding      = 4
+		largeTerminalWidth  = 140 // Breakpoint for full-width layout (time + 5 wide columns + borders)
+		mediumTerminalWidth = 100 // Breakpoint for medium layout (time + 5 medium columns + borders)
+		largeEntryWidth     = 20  // Column width for large terminals
+		largeTimeWidth      = 8   // Time column width for large terminals
+		mediumEntryWidth    = 16  // Column width for medium terminals
+		mediumTimeWidth     = 7   // Time column width for medium terminals
+		smallEntryWidth     = 14  // Column width for small terminals
+		smallTimeWidth      = 6   // Time column width for small terminals
+		minRoomDisplayWidth = 16  // Minimum column width to display room information
+		minTextPadding      = 4   // Space reserved for icons and padding (2 chars per side)
 	)
 	
 	// Responsive sizing based on terminal width
@@ -219,8 +219,8 @@ func (m model) View() string {
 					// Truncate long subject names for smaller terminals
 					displaySubject := subject
 					maxSubjectLen := entryColWidth - minTextPadding
-					if maxSubjectLen < 1 {
-						maxSubjectLen = 1
+					if maxSubjectLen < 2 {
+						maxSubjectLen = 2
 					}
 					if len(displaySubject) > maxSubjectLen {
 						displaySubject = displaySubject[:maxSubjectLen-1] + "…"
@@ -232,8 +232,8 @@ func (m model) View() string {
 						// Truncate room names for smaller cells
 						displayRoom := room
 						maxRoomLen := entryColWidth - minTextPadding
-						if maxRoomLen < 1 {
-							maxRoomLen = 1
+						if maxRoomLen < 2 {
+							maxRoomLen = 2
 						}
 						if len(displayRoom) > maxRoomLen {
 							displayRoom = displayRoom[:maxRoomLen-1] + "…"
