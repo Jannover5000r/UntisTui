@@ -20,6 +20,8 @@ type model struct {
 	dayNames  [5]string
 	timeSlots []string
 	timeMaps  [5]map[string]untis.NamedTimetableEntry
+	width     int
+	height    int
 }
 
 func (m model) Init() tea.Cmd {
@@ -40,6 +42,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tea.Quit,
 			)
 		}
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	}
 	return m, nil
 }
@@ -101,57 +106,158 @@ func newModel() model {
 
 func (m model) View() string {
 	if len(m.timeSlots) == 0 {
-		return "No timetable data.\nPress q to quit"
+		return "📅 No timetable data.\n\n󰌑  Press q to quit"
 	}
-	timeColWidth := 6
-	entryColWidth := 18
+	
+	// Responsive sizing based on terminal width
+	timeColWidth := 8
+	entryColWidth := 20
+	
+	// Adjust column widths for smaller terminals
+	if m.width > 0 && m.width < 140 {
+		entryColWidth = 16
+		timeColWidth = 7
+	}
+	if m.width > 0 && m.width < 100 {
+		entryColWidth = 14
+		timeColWidth = 6
+	}
 
-	// Styling
-	timeStrStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Width(timeColWidth).Align(lipgloss.Right)
-	timeStyle := lipgloss.NewStyle().PaddingTop(1).Foreground(lipgloss.Color("63")).Width(timeColWidth).Align(lipgloss.Right)
-	headerStyle := lipgloss.NewStyle().Bold(true).Padding(0, 1).Width(entryColWidth + 2).Align(lipgloss.Center).Foreground(lipgloss.Color("63"))
-	entryStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true).Padding(0, 1).Width(entryColWidth).BorderStyle(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("63")).Align(lipgloss.Center)
+	// Enhanced color palette
+	primaryColor := lipgloss.Color("12")     // Vibrant blue
+	secondaryColor := lipgloss.Color("14")   // Cyan
+	accentColor := lipgloss.Color("13")      // Magenta
+	textColor := lipgloss.Color("15")        // White
+	mutedColor := lipgloss.Color("240")      // Gray
+	successColor := lipgloss.Color("10")     // Green
+	
+	// Enhanced styling with icons and better visual hierarchy
+	timeStrStyle := lipgloss.NewStyle().
+		Foreground(primaryColor).
+		Width(timeColWidth).
+		Align(lipgloss.Center).
+		Bold(true)
+	
+	timeStyle := lipgloss.NewStyle().
+		PaddingTop(1).
+		Foreground(secondaryColor).
+		Width(timeColWidth).
+		Align(lipgloss.Center).
+		Bold(true)
+	
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Padding(0, 1).
+		Width(entryColWidth + 2).
+		Align(lipgloss.Center).
+		Foreground(textColor).
+		Background(primaryColor)
+	
+	entryStyle := lipgloss.NewStyle().
+		Foreground(successColor).
+		Bold(true).
+		Padding(1, 1).
+		Width(entryColWidth).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(accentColor).
+		Align(lipgloss.Center)
+	
+	emptyEntryStyle := lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Padding(1, 1).
+		Width(entryColWidth).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(mutedColor).
+		Align(lipgloss.Center)
 
-	headers := []string{timeStrStyle.Render("Time")}
+	// Day name icons (Nerd Font icons)
+	dayIcons := map[string]string{
+		"Mon": "󰃭",
+		"Tue": "󰃮",
+		"Wed": "󰃯",
+		"Thu": "󰃰",
+		"Fri": "󰃱",
+	}
+
+	// Build header row with icons
+	headers := []string{timeStrStyle.Render("  " + "Time")}
 	for _, name := range m.dayNames {
-		headers = append(headers, headerStyle.Render(name))
+		icon := dayIcons[name]
+		headers = append(headers, headerStyle.Render(icon+" "+name))
 	}
 	rows := []string{lipgloss.JoinHorizontal(lipgloss.Top, headers...)}
 
+	// Build time slot rows
 	for _, timeSlot := range m.timeSlots {
-		cells := []string{timeStyle.Render(timeSlot)}
+		cells := []string{timeStyle.Render("  " + timeSlot)}
 		for dayIdx := 0; dayIdx < 5; dayIdx++ {
 			if entry, exists := m.timeMaps[dayIdx][timeSlot]; exists {
-				label := strings.Join(entry.Su, "/")
-				if label == "" {
-					label = "-"
+				subject := strings.Join(entry.Su, "/")
+				room := ""
+				if len(entry.Ro) > 0 {
+					room = entry.Ro[0]
+				}
+				
+				var label string
+				if subject == "" {
+					label = "─"
+				} else {
+					// Truncate long subject names for smaller terminals
+					displaySubject := subject
+					maxSubjectLen := entryColWidth - 4
+					if len(displaySubject) > maxSubjectLen {
+						displaySubject = displaySubject[:maxSubjectLen-1] + "…"
+					}
+					
+					// Add book icon for lessons
+					label = "  " + displaySubject
+					if room != "" && entryColWidth >= 16 {
+						// Truncate room names for smaller cells
+						displayRoom := room
+						if len(displayRoom) > maxSubjectLen {
+							displayRoom = displayRoom[:maxSubjectLen-1] + "…"
+						}
+						label += "\n 󰍉 " + displayRoom
+					}
 				}
 				cells = append(cells, entryStyle.Render(label))
 			} else {
-				cells = append(cells, entryStyle.Render(""))
+				cells = append(cells, emptyEntryStyle.Render("━"))
 			}
 		}
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 	}
 	tableContent := lipgloss.JoinVertical(lipgloss.Left, rows...)
 
-	title := lipgloss.NewStyle().
+	// Enhanced title with icon
+	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("63")).
-		Padding(0, 1).
-		Render("Weekly Timetable")
+		Foreground(textColor).
+		Background(primaryColor).
+		Padding(0, 2).
+		MarginBottom(1)
+	
+	title := titleStyle.Render("📅  Weekly Timetable  📚")
 
-	border := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Padding(1, 2).
-		Render(tableContent)
-	tableContent = border
+	// Enhanced border
+	borderStyle := lipgloss.NewStyle().
+		Border(lipgloss.ThickBorder()).
+		BorderForeground(primaryColor).
+		Padding(1, 2)
+	
+	tableContent = borderStyle.Render(tableContent)
 
-	content := lipgloss.JoinVertical(lipgloss.Center, title, tableContent)
+	// Enhanced footer with icons
+	footerStyle := lipgloss.NewStyle().
+		Foreground(mutedColor).
+		MarginTop(1).
+		Italic(true)
+	
+	footer := footerStyle.Render("󰌑  Press 'q' to quit  │  󰋼  Navigation coming soon")
 
-	footer := "\nPress q to quit"
+	content := lipgloss.JoinVertical(lipgloss.Left, title, tableContent, footer)
 
-	return content + footer
+	return content
 }
 
 func timeToMinutes(t string) int {
