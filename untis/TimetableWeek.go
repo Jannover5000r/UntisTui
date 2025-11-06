@@ -16,7 +16,7 @@ func getMonday(t time.Time) time.Time {
 func getWeekTable(cookies []*http.Cookie) {
 	now := time.Now()
 	monday := getMonday(now)
-	tuesday := monday.AddDate(0, 0, 2)
+	tuesday := monday.AddDate(0, 0, 1)
 	wednesday := monday.AddDate(0, 0, 2)
 	thursday := monday.AddDate(0, 0, 3)
 	friday := monday.AddDate(0, 0, 4)

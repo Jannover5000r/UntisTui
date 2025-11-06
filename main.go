@@ -10,6 +10,7 @@ import (
 
 	untis "UntisTui/untis"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
@@ -20,6 +21,8 @@ type model struct {
 	dayNames  [5]string
 	timeSlots []string
 	timeMaps  [5]map[string]untis.NamedTimetableEntry
+	viewport  viewport.Model
+	ready     bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -30,18 +33,32 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "q", "ctrl+c", "esc":
 			return m, tea.Sequence(
 				tea.ShowCursor,
 				tea.ExitAltScreen,
 				tea.Quit,
 			)
 		}
+
+	case tea.WindowSizeMsg:
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height - 4
+		if m.ready {
+			m.viewport.SetContent(m.renderTable())
+		}
 	}
-	return m, nil
+
+	vp, cmd := m.viewport.Update(msg)
+	m.viewport = vp
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func main() {
@@ -100,6 +117,18 @@ func newModel() model {
 }
 
 func (m model) View() string {
+	if !m.ready {
+		content := m.renderTable()
+		m.viewport = viewport.New(160, 50) // placeholder; will be resized
+		m.viewport.SetContent(content)
+		m.ready = true
+	}
+
+	termWidth, termHeight := m.viewport.Width, m.viewport.Height
+	if termWidth == 0 || termHeight == 0 {
+		termWidth, termHeight = 80, 24
+	}
+
 	if len(m.timeSlots) == 0 {
 		return "No timetable data.\nPress q to quit"
 	}
@@ -119,13 +148,27 @@ func (m model) View() string {
 	rows := []string{lipgloss.JoinHorizontal(lipgloss.Top, headers...)}
 
 	for _, timeSlot := range m.timeSlots {
+
 		cells := []string{timeStyle.Render(timeSlot)}
 		for dayIdx := 0; dayIdx < 5; dayIdx++ {
 			if entry, exists := m.timeMaps[dayIdx][timeSlot]; exists {
-				label := strings.Join(entry.Su, "/")
-				if label == "" {
-					label = "-"
+				var lines []string
+
+				if len(entry.Su) > 0 {
+					lines = append(lines, strings.Join(entry.Su, "/"))
+				} else {
+					lines = append(lines, "-")
 				}
+
+				if len(entry.Ro) > 0 {
+					lines = append(lines, strings.Join(entry.Ro, "/"))
+				}
+
+				if entry.Code != "" {
+					lines = append(lines, entry.Code)
+				}
+
+				label := strings.Join(lines, "\n")
 				cells = append(cells, entryStyle.Render(label))
 			} else {
 				cells = append(cells, entryStyle.Render(""))
@@ -133,25 +176,69 @@ func (m model) View() string {
 		}
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 	}
-	tableContent := lipgloss.JoinVertical(lipgloss.Left, rows...)
+	tableContent := m.renderTable()
+	m.viewport.Width = termWidth
+	m.viewport.Height = termHeight - 4 // leave room for title + footer
+	m.viewport.SetContent(tableContent)
 
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("63")).
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63")).Padding(0, 1).Render("Weekly Timetable")
+
+	body := m.viewport.View()
+	footer := "\n↑/↓: scroll • q: quit"
+	return lipgloss.JoinVertical(lipgloss.Top, title, body, footer)
+}
+
+func (m model) renderTable() string {
+	if len(m.timeSlots) == 0 {
+		return "No timetable data availible."
+	}
+
+	// Estimate column widths based on terminal (optional: hardcode for now)
+	entryColWidth := 16
+	timeColWidth := 6
+
+	timeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Width(timeColWidth).Align(lipgloss.Right)
+	headerStyle := lipgloss.NewStyle().Bold(true).Padding(0, 1).Width(entryColWidth)
+	entryStyle := lipgloss.NewStyle().
 		Padding(0, 1).
-		Render("Weekly Timetable")
+		Width(entryColWidth).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63"))
 
-	border := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Padding(1, 2).
-		Render(tableContent)
-	tableContent = border
+	// Header
+	headers := []string{timeStyle.Render("Time")}
+	for _, name := range m.dayNames {
+		headers = append(headers, headerStyle.Render(name))
+	}
+	rows := []string{lipgloss.JoinHorizontal(lipgloss.Top, headers...)}
 
-	content := lipgloss.JoinVertical(lipgloss.Center, title, tableContent)
+	// Data rows
+	for _, timeSlot := range m.timeSlots {
+		cells := []string{timeStyle.Render(timeSlot)}
+		for dayIdx := 0; dayIdx < 5; dayIdx++ {
+			if entry, exists := m.timeMaps[dayIdx][timeSlot]; exists {
+				var lines []string
+				if len(entry.Su) > 0 {
+					lines = append(lines, strings.Join(entry.Su, "/"))
+				} else {
+					lines = append(lines, "—")
+				}
+				if len(entry.Ro) > 0 {
+					lines = append(lines, strings.Join(entry.Ro, "/"))
+				}
+				if entry.Code != "" {
+					lines = append(lines, entry.Code)
+				}
+				label := strings.Join(lines, "\n")
+				cells = append(cells, entryStyle.Render(label))
+			} else {
+				cells = append(cells, entryStyle.Render(""))
+			}
+		}
+		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
+	}
 
-	footer := "\nPress q to quit"
-
-	return content + footer
+	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
 func timeToMinutes(t string) int {
