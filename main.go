@@ -109,18 +109,32 @@ func (m model) View() string {
 		return "📅 No timetable data.\n\n󰌑  Press q to quit"
 	}
 	
+	// Responsive breakpoints and sizing constants
+	const (
+		largeTerminalWidth  = 140
+		mediumTerminalWidth = 100
+		largeEntryWidth     = 20
+		largeTimeWidth      = 8
+		mediumEntryWidth    = 16
+		mediumTimeWidth     = 7
+		smallEntryWidth     = 14
+		smallTimeWidth      = 6
+		minRoomDisplayWidth = 16
+		minTextPadding      = 4
+	)
+	
 	// Responsive sizing based on terminal width
-	timeColWidth := 8
-	entryColWidth := 20
+	timeColWidth := largeTimeWidth
+	entryColWidth := largeEntryWidth
 	
 	// Adjust column widths for smaller terminals
-	if m.width > 0 && m.width < 140 {
-		entryColWidth = 16
-		timeColWidth = 7
+	if m.width > 0 && m.width < largeTerminalWidth {
+		entryColWidth = mediumEntryWidth
+		timeColWidth = mediumTimeWidth
 	}
-	if m.width > 0 && m.width < 100 {
-		entryColWidth = 14
-		timeColWidth = 6
+	if m.width > 0 && m.width < mediumTerminalWidth {
+		entryColWidth = smallEntryWidth
+		timeColWidth = smallTimeWidth
 	}
 
 	// Enhanced color palette
@@ -204,18 +218,25 @@ func (m model) View() string {
 				} else {
 					// Truncate long subject names for smaller terminals
 					displaySubject := subject
-					maxSubjectLen := entryColWidth - 4
+					maxSubjectLen := entryColWidth - minTextPadding
+					if maxSubjectLen < 1 {
+						maxSubjectLen = 1
+					}
 					if len(displaySubject) > maxSubjectLen {
 						displaySubject = displaySubject[:maxSubjectLen-1] + "…"
 					}
 					
 					// Add book icon for lessons
 					label = "  " + displaySubject
-					if room != "" && entryColWidth >= 16 {
+					if room != "" && entryColWidth >= minRoomDisplayWidth {
 						// Truncate room names for smaller cells
 						displayRoom := room
-						if len(displayRoom) > maxSubjectLen {
-							displayRoom = displayRoom[:maxSubjectLen-1] + "…"
+						maxRoomLen := entryColWidth - minTextPadding
+						if maxRoomLen < 1 {
+							maxRoomLen = 1
+						}
+						if len(displayRoom) > maxRoomLen {
+							displayRoom = displayRoom[:maxRoomLen-1] + "…"
 						}
 						label += "\n 󰍉 " + displayRoom
 					}
