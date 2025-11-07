@@ -30,7 +30,7 @@ type Room struct {
 	Building string `json:"building"`
 }
 
-func Rooms(cookies []*http.Cookie) {
+func Rooms(cookies []*http.Cookie, url string) {
 	// log.Println("Abrufen der Stunden")
 	g := getRooms{"2023-05-06 15:44:22.215292", "getRooms", map[string]any{}, "2.0"}
 	roomsJSON, err := json.Marshal(g)
@@ -40,7 +40,7 @@ func Rooms(cookies []*http.Cookie) {
 	}
 	rooms := bytes.NewReader(roomsJSON)
 
-	prompt, err := http.NewRequest("POST", URL, rooms)
+	prompt, err := http.NewRequest("POST", url, rooms)
 	if err != nil {
 		log.Fatalf("Error creatingrequest: %v", err)
 		return

@@ -28,7 +28,7 @@ type getClasses struct {
 	Jsonrpc string `json:"jsonrpc"`
 }
 
-func Classes(cookies []*http.Cookie) {
+func Classes(cookies []*http.Cookie, url string) {
 	g := getClasses{"2023-05-06 15:44:22.215292", "getKlassen", map[string]any{}, "2.0"}
 	ClassesJSON, err := json.Marshal(g)
 	if err != nil {
@@ -37,7 +37,7 @@ func Classes(cookies []*http.Cookie) {
 	}
 	classes := bytes.NewReader(ClassesJSON)
 
-	prompt, err := http.NewRequest("POST", URL, classes)
+	prompt, err := http.NewRequest("POST", url, classes)
 	if err != nil {
 		log.Fatalf("Error creatingrequest: %v", err)
 		return

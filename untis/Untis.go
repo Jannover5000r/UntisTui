@@ -35,23 +35,21 @@ func init() {
 	godotenv.Overload("../.env")
 }
 
-var URL = "https://thalia.webuntis.com/WebUntis/jsonrpc.do?school=Mons_Tabor"
-
-func Main(user string, password string) {
+func Main(user string, password string, url string) {
 	godotenv.Load("../.env")
-	cookies, err := Auth(user, password)
+	cookies, err := Auth(user, password, url)
 	if err != nil {
 		log.Printf("Authentication failed for user %s: %v", user, err)
 		return
 	}
-	Rooms(cookies)
-	Classes(cookies)
-	Subjects(cookies)
-	TimetableWeek(cookies)
-	Teachers(cookies)
+	Rooms(cookies, url)
+	Classes(cookies, url)
+	Subjects(cookies, url)
+	TimetableWeek(cookies, url)
+	Teachers(cookies, url)
 }
 
-func Auth(user string, password string) ([]*http.Cookie, error) {
+func Auth(user string, password string, url string) ([]*http.Cookie, error) {
 	l := Login{"2023-05-06 15:44:22.215292", "authenticate", Params{user, password, "WebUntis Test"}, "2.0"}
 	loginJSON, err := json.Marshal(l)
 	if err != nil {
@@ -59,7 +57,7 @@ func Auth(user string, password string) ([]*http.Cookie, error) {
 	}
 	login := bytes.NewReader(loginJSON)
 
-	LoginOut, err := http.Post(URL, "application/json", login)
+	LoginOut, err := http.Post(url, "application/json", login)
 	if err != nil {
 		return nil, err
 	}

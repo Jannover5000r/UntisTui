@@ -77,7 +77,7 @@ func ReadLoginResultFromFile(path string) (Loginresult, error) {
 	return result, err
 }
 
-func Timetable(cookies []*http.Cookie, date time.Time, weekday string) {
+func Timetable(cookies []*http.Cookie, date time.Time, weekday string, url string) {
 	loginFile := "login.json"
 
 	loginResult, err := ReadLoginResultFromFile(loginFile)
@@ -95,7 +95,7 @@ func Timetable(cookies []*http.Cookie, date time.Time, weekday string) {
 	}
 	timetable := bytes.NewReader(timetablesJSON)
 
-	req, err := http.NewRequest("GET", URL, timetable)
+	req, err := http.NewRequest("GET", url, timetable)
 	if err != nil {
 		log.Printf("Error creating timetable request: %v", err)
 		return

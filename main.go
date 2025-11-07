@@ -35,7 +35,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "q", "ctrl+c", "esc":
 			return m, tea.Sequence(
 				tea.ShowCursor,
 				tea.ExitAltScreen,
@@ -54,9 +54,10 @@ func main() {
 	if err != nil {
 		log.Println("error reading .env ", err)
 	}
-	user := os.Getenv("USER")
-	pass := os.Getenv("PASS")
-	untis.Main(user, pass)
+	user := os.Getenv("UNTIS_USERNAME")
+	pass := os.Getenv("UNTIS_PASSWORD")
+	url := os.Getenv("UNTIS_URL")
+	untis.Main(user, pass, url)
 
 	p := tea.NewProgram(newModel())
 	if _, err := p.Run(); err != nil {
@@ -108,7 +109,7 @@ func (m model) View() string {
 	if len(m.timeSlots) == 0 {
 		return "📅 No timetable data.\n\n󰌑  Press q to quit"
 	}
-	
+
 	// Responsive breakpoints and sizing constants
 	const (
 		largeTerminalWidth  = 140 // Breakpoint for full-width layout (time + 5 wide columns + borders)
@@ -120,13 +121,14 @@ func (m model) View() string {
 		smallEntryWidth     = 14  // Column width for small terminals
 		smallTimeWidth      = 6   // Time column width for small terminals
 		minRoomDisplayWidth = 16  // Minimum column width to display room information
+		minCodeDisplayWidth = 16  // Minimum column width to display Code
 		minTextPadding      = 4   // Space reserved for icons and padding (2 chars per side)
 	)
-	
+
 	// Responsive sizing based on terminal width
 	timeColWidth := largeTimeWidth
 	entryColWidth := largeEntryWidth
-	
+
 	// Adjust column widths for smaller terminals
 	if m.width > 0 && m.width < largeTerminalWidth {
 		entryColWidth = mediumEntryWidth
@@ -138,27 +140,27 @@ func (m model) View() string {
 	}
 
 	// Enhanced color palette
-	primaryColor := lipgloss.Color("12")     // Vibrant blue
-	secondaryColor := lipgloss.Color("14")   // Cyan
-	accentColor := lipgloss.Color("13")      // Magenta
-	textColor := lipgloss.Color("15")        // White
-	mutedColor := lipgloss.Color("240")      // Gray
-	successColor := lipgloss.Color("10")     // Green
-	
+	primaryColor := lipgloss.Color("12")   // Vibrant blue
+	secondaryColor := lipgloss.Color("14") // Cyan
+	accentColor := lipgloss.Color("13")    // Magenta
+	textColor := lipgloss.Color("15")      // White
+	mutedColor := lipgloss.Color("240")    // Gray
+	successColor := lipgloss.Color("10")   // Green
+
 	// Enhanced styling with icons and better visual hierarchy
 	timeStrStyle := lipgloss.NewStyle().
 		Foreground(primaryColor).
 		Width(timeColWidth).
 		Align(lipgloss.Center).
 		Bold(true)
-	
+
 	timeStyle := lipgloss.NewStyle().
 		PaddingTop(1).
 		Foreground(secondaryColor).
 		Width(timeColWidth).
 		Align(lipgloss.Center).
 		Bold(true)
-	
+
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Padding(0, 1).
@@ -166,7 +168,7 @@ func (m model) View() string {
 		Align(lipgloss.Center).
 		Foreground(textColor).
 		Background(primaryColor)
-	
+
 	entryStyle := lipgloss.NewStyle().
 		Foreground(successColor).
 		Bold(true).
@@ -175,7 +177,7 @@ func (m model) View() string {
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(accentColor).
 		Align(lipgloss.Center)
-	
+
 	emptyEntryStyle := lipgloss.NewStyle().
 		Foreground(mutedColor).
 		Padding(1, 1).
@@ -211,7 +213,12 @@ func (m model) View() string {
 				if len(entry.Ro) > 0 {
 					room = entry.Ro[0]
 				}
-				
+
+				code := " "
+				if entry.Code != "" {
+					code = entry.Code
+				}
+
 				var label string
 				if subject == "" {
 					label = "─"
@@ -225,7 +232,7 @@ func (m model) View() string {
 					if len(displaySubject) > maxSubjectLen {
 						displaySubject = displaySubject[:maxSubjectLen-1] + "…"
 					}
-					
+
 					// Add book icon for lessons
 					label = "  " + displaySubject
 					if room != "" && entryColWidth >= minRoomDisplayWidth {
@@ -239,6 +246,17 @@ func (m model) View() string {
 							displayRoom = displayRoom[:maxRoomLen-1] + "…"
 						}
 						label += "\n 󰍉 " + displayRoom
+					}
+					if code != "" && entryColWidth >= minCodeDisplayWidth {
+						displayCode := code
+						maxCodeLen := entryColWidth - minTextPadding
+						if maxCodeLen < 2 {
+							maxCodeLen = 2
+						}
+						if len(displayCode) > maxCodeLen {
+							displayCode = displayCode[:maxCodeLen-1] + "…"
+						}
+						label += "\n " + displayCode
 					}
 				}
 				cells = append(cells, entryStyle.Render(label))
@@ -257,7 +275,7 @@ func (m model) View() string {
 		Background(primaryColor).
 		Padding(0, 2).
 		MarginBottom(1)
-	
+
 	title := titleStyle.Render("📅  Weekly Timetable  📚")
 
 	// Enhanced border
@@ -265,7 +283,7 @@ func (m model) View() string {
 		Border(lipgloss.ThickBorder()).
 		BorderForeground(primaryColor).
 		Padding(1, 2)
-	
+
 	tableContent = borderStyle.Render(tableContent)
 
 	// Enhanced footer with icons
@@ -273,7 +291,7 @@ func (m model) View() string {
 		Foreground(mutedColor).
 		MarginTop(1).
 		Italic(true)
-	
+
 	footer := footerStyle.Render("󰌑  Press 'q' to quit  │  󰋼  Navigation coming soon")
 
 	content := lipgloss.JoinVertical(lipgloss.Left, title, tableContent, footer)

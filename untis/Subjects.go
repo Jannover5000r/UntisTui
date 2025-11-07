@@ -28,7 +28,7 @@ type getSubjects struct {
 	Jsonrpc string `json:"jsonrpc"`
 }
 
-func Subjects(cookies []*http.Cookie) {
+func Subjects(cookies []*http.Cookie, url string) {
 	g := getSubjects{"2023-05-06 15:44:22.215292", "getSubjects", map[string]any{}, "2.0"}
 	SubjectsJSON, err := json.Marshal(g)
 	if err != nil {
@@ -37,7 +37,7 @@ func Subjects(cookies []*http.Cookie) {
 	}
 	subjects := bytes.NewReader(SubjectsJSON)
 
-	prompt, err := http.NewRequest("POST", URL, subjects)
+	prompt, err := http.NewRequest("POST", url, subjects)
 	if err != nil {
 		log.Fatalf("Error creatingrequest: %v", err)
 		return

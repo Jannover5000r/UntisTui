@@ -13,25 +13,25 @@ func getMonday(t time.Time) time.Time {
 	return t.AddDate(0, 0, -offset)
 }
 
-func getWeekTable(cookies []*http.Cookie) {
+func getWeekTable(cookies []*http.Cookie, url string) {
 	now := time.Now()
 	monday := getMonday(now)
-	tuesday := monday.AddDate(0, 0, 2)
+	tuesday := monday.AddDate(0, 0, 1)
 	wednesday := monday.AddDate(0, 0, 2)
 	thursday := monday.AddDate(0, 0, 3)
 	friday := monday.AddDate(0, 0, 4)
 	Weekday := "Monday"
-	Timetable(cookies, monday, Weekday)
+	Timetable(cookies, monday, Weekday, url)
 	Weekday = "Tuesday"
-	Timetable(cookies, tuesday, Weekday)
+	Timetable(cookies, tuesday, Weekday, url)
 	Weekday = "Wednesday"
-	Timetable(cookies, wednesday, Weekday)
+	Timetable(cookies, wednesday, Weekday, url)
 	Weekday = "Thursday"
-	Timetable(cookies, thursday, Weekday)
+	Timetable(cookies, thursday, Weekday, url)
 	Weekday = "Friday"
-	Timetable(cookies, friday, Weekday)
+	Timetable(cookies, friday, Weekday, url)
 }
 
-func TimetableWeek(cookies []*http.Cookie) {
-	getWeekTable(cookies)
+func TimetableWeek(cookies []*http.Cookie, url string) {
+	getWeekTable(cookies, url)
 }
