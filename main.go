@@ -10,6 +10,7 @@ import (
 
 	untis "UntisTui/untis"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
@@ -32,10 +33,12 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "q", "ctrl+c", "esc":
 			return m, tea.Sequence(
 				tea.ShowCursor,
 				tea.ExitAltScreen,
@@ -46,7 +49,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 	}
-	return m, nil
+
+	vp, cmd := m.viewport.Update(msg)
+	m.viewport = vp
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func main() {
@@ -105,6 +113,18 @@ func newModel() model {
 }
 
 func (m model) View() string {
+	if !m.ready {
+		content := m.renderTable()
+		m.viewport = viewport.New(160, 50) // placeholder; will be resized
+		m.viewport.SetContent(content)
+		m.ready = true
+	}
+
+	termWidth, termHeight := m.viewport.Width, m.viewport.Height
+	if termWidth == 0 || termHeight == 0 {
+		termWidth, termHeight = 80, 24
+	}
+
 	if len(m.timeSlots) == 0 {
 		return "📅 No timetable data.\n\n󰌑  Press q to quit"
 	}
@@ -241,6 +261,16 @@ func (m model) View() string {
 						label += "\n 󰍉 " + displayRoom
 					}
 				}
+
+				if len(entry.Ro) > 0 {
+					lines = append(lines, strings.Join(entry.Ro, "/"))
+				}
+
+				if entry.Code != "" {
+					lines = append(lines, entry.Code)
+				}
+
+				label := strings.Join(lines, "\n")
 				cells = append(cells, entryStyle.Render(label))
 			} else {
 				cells = append(cells, emptyEntryStyle.Render("━"))
@@ -248,7 +278,10 @@ func (m model) View() string {
 		}
 		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 	}
-	tableContent := lipgloss.JoinVertical(lipgloss.Left, rows...)
+	tableContent := m.renderTable()
+	m.viewport.Width = termWidth
+	m.viewport.Height = termHeight - 4 // leave room for title + footer
+	m.viewport.SetContent(tableContent)
 
 	// Enhanced title with icon
 	titleStyle := lipgloss.NewStyle().

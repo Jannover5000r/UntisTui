@@ -6,3 +6,4 @@ timetable*.json
 .env
 classes.json
 UntisTui
+Timetable*.json
